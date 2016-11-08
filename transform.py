@@ -154,8 +154,8 @@ class Transform:
         ret = 0
         for index in range(len(self.target_pixels)):
             dr = self.target_pixels[index][0] - pixels[index][0]
-            dg = self.target_pixels[index][0] - pixels[index][0]
-            db = self.target_pixels[index][0] - pixels[index][0]
+            dg = self.target_pixels[index][1] - pixels[index][1]
+            db = self.target_pixels[index][2] - pixels[index][2]
             ret += dr * dr + dg * dg + db * db
         return ret
 
