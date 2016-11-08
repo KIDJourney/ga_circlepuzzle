@@ -2,6 +2,7 @@ import getopt
 import time
 import sys
 import os
+import copy
 
 from PIL import Image, ImageDraw
 from random import randint as _r
@@ -27,11 +28,14 @@ class Color:
             new_value = random_change_in_range(getattr(self, attr), self.mutate_speed, 255, 0)
             setattr(self, attr, new_value)
 
+    def as_tuple(self):
+        return self.r, self.g, self.b, self.a
 
-class Circel:
-    def __init__(self, max_range, mutate_speed=0.1, mutate_rate=50):
-        self.max_range = max_range
-        self.centre = (_r(0, max_range[0]), _r(0, max_range[1]))
+
+class Circle:
+    def __init__(self, image_size, mutate_speed=0.1, mutate_rate=50):
+        self.max_range = image_size
+        self.centre = (_r(0, image_size[0]), _r(0, image_size[1]))
         self.radius = min(abs(self.max_range[0] - self.centre[0]), abs(self.max_range[1] - self.centre[1]))
         self.mutate_speed = mutate_speed
         self.mutate_rate = mutate_rate
@@ -46,15 +50,98 @@ class Circel:
         self.color.mutate()
 
     def mutate(self):
-        pass
+        mutated = self.is_mutable()
+        if mutated:
+            self._mutate()
+        return mutated
 
     def is_mutable(self):
         return _r(0, 100) < self.mutate_rate
 
+    def as_draw(self):
+        return self.centre[0], self.centre[1], self.centre[0] + self.radius, self.centre[1] + self.radius
+
+
+# *--------->x
+# |
+# |
+# |
+# |
+# |
+# v
+# y
+
+
+class PixelImage:
+    def __init__(self, image_size, circle_nums=100, mutate_speed=0.1, mutate_rate=10):
+        self.image_size = image_size
+        self.circles = [Circle(image_size) for _ in circle_nums]
+        self.pixels = []
+        self.image = None
+
+    def mutate_a_child(self):
+        # make a copy
+        child = copy.deepcopy(self)
+        # if no one mutate
+        result = any(circle.mutate() for circle in child.circles)
+        if not result:
+            child.circles[-1]._mutate()
+
+        return child
+
+    def get_pixels(self):
+        temp_image = Image.new('RGBA', self.image_size)
+        draw = ImageDraw.Draw(temp_image)
+        for circle in self.circles:
+            draw.ellipse(circle.as_draw(), circle.color.as_tuple())
+
+        self.image = temp_image
+
+        pixels = [temp_image.getpixel((x, y)) for y in range(temp_image.size[1]) for x in range(temp_image.size[0])]
+        return pixels
+
+    def save_as_img(self, path, name):
+        self.image.save(os.path.join(path, name))
+
 
 class Transform:
-    def __init__(self, target, output_path, circel_nums=100, max_loop=10240):
-        self.target = Image.open(target)
+    def __init__(self, target, output_path, max_loop=10240, save_pre_loop=1000, circle_nums=100, mutate_speed=0.1,
+                 mutate_rate=10):
+        self.target = Image.open(target).convert('RGBA')
         self.output_path = output_path
-        self.circel_nums = circel_nums
-        self.max_loop = 10240
+        self.max_loop = max_loop
+        self.save_pre_loop = save_pre_loop
+
+        self.circle_nums = circle_nums
+        self.mutate_speed = mutate_speed
+        self.mutate_rate = mutate_rate
+
+        self.target_pixels = [self.target.getpixel((x, y)) for y in range(self.target.size[1]) for x in
+                              range(self.target.size[0])]
+
+    def compare_pixel(self, pixels):
+        if len(pixels) != len(self.target_pixels):
+            raise Exception("Pixels nums not equal")
+        for index in range(len(self.target_pixels)):
+            scores = map(lambda x, y: x - y, self.target_pixels[index], pixels[index])
+            scores = sum(map(lambda x: x ** 2), scores)
+            return scores
+
+    def main(self):
+        parent = PixelImage(self.target.size, self.circle_nums, self.mutate_speed, self.mutate_rate)
+        counter = 0
+        while True:
+            if counter % self.save_pre_loop == 0:
+                parent.save_as_img(self.output_path, str(counter))
+
+            child = parent.mutate_a_child()
+
+            parent_diff = self.compare_pixel(parent.get_pixels())
+            child_diff = self.compare_pixel(child.get_pixels())
+
+            print("Score Parent:{} \t Child: {}".format(parent_diff, child_diff))
+
+            if child_diff < parent_diff:
+                parent = child
+
+            counter += 1
