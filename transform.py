@@ -67,6 +67,12 @@ class Circle:
     def is_mutable(self):
         return _r(0, 100) < self.mutate_rate
 
+    def as_image(self):
+        temp_image = Image.new("RGBA", self.max_range)
+        draw = ImageDraw.Draw(temp_image)
+        draw.ellipse(self.as_draw(), fill=self.color.as_tuple())
+        return temp_image
+
     def as_draw(self):
         return self.centre[0], self.centre[1], self.centre[0] + self.radius, self.centre[1] + self.radius
 
@@ -97,25 +103,28 @@ class PixelImage:
 
         self.circles = [Circle(image_size, mutate_speed, mutate_rate) for _ in range(circle_nums)]
 
-    def mutate_a_child(self):
+    def born_a_child(self):
         # make a copy
         child = copy.deepcopy(self)
         # if no one mutate
-        result = any(circle.mutate() for circle in child.circles)
-        if not result:
-            child.circles[-1]._mutate()
-
         return child
+
+    def mutate(self):
+        counter = 0
+        for circle in self.circles:
+            counter += 1 if circle.mutate() else 0
+
+        if counter == 0:
+            self.circles[0]._mutate()
 
     def get_pixels(self):
         temp_image = Image.new('RGBA', self.image_size)
-        draw = ImageDraw.Draw(temp_image)
         for circle in self.circles:
-            draw.ellipse(circle.as_draw(), circle.color.as_tuple())
+            temp_image = Image.alpha_composite(temp_image, circle.as_image())
 
         self.image = temp_image
 
-        pixels = [temp_image.getpixel((x, y)) for y in range(temp_image.size[1]) for x in range(temp_image.size[0])]
+        pixels = [self.image.getpixel((x, y)) for y in range(self.image.size[1]) for x in range(temp_image.size[0])]
         return pixels
 
     def save_as_img(self, path, name):
@@ -142,39 +151,43 @@ class Transform:
     def compare_pixel(self, pixels):
         if len(pixels) != len(self.target_pixels):
             raise Exception("Pixels nums not equal")
+        ret = 0
         for index in range(len(self.target_pixels)):
-            scores = map(lambda x, y: x - y, self.target_pixels[index], pixels[index])
-            scores = sum(map(lambda x: x ** 2, scores))
-            return scores
+            dr = self.target_pixels[index][0] - pixels[index][0]
+            dg = self.target_pixels[index][0] - pixels[index][0]
+            db = self.target_pixels[index][0] - pixels[index][0]
+            ret += dr * dr + dg * dg + db * db
+        return ret
 
     def main(self):
         parent = PixelImage(self.target.size, self.circle_nums, self.mutate_speed, self.mutate_rate)
         counter = 0
-        while True:
-            if counter > self.max_loop:
-                break
 
-            child = parent.mutate_a_child()
+        child = parent.born_a_child()
 
-            self.parent = parent
-            self.child = child
+        child.mutate()
 
-            print(child.circles[0].centre)
 
-            parent_diff = self.compare_pixel(parent.get_pixels())
-            child_diff = self.compare_pixel(child.get_pixels())
 
-            print("Loop:{} \t Score Parent:{} \t Child: {}".format(counter, parent_diff, child_diff))
+        self.parent = parent
+        self.child = child
 
-            if counter % self.save_pre_loop == 0:
-                parent.save_as_img(self.output_path, str(counter))
+        print(child.circles[0].centre)
 
-            if child_diff < parent_diff:
-                parent = child
+        parent_diff = self.compare_pixel(parent.get_pixels())
+        child_diff = self.compare_pixel(child.get_pixels())
 
-            counter += 1
+        print("Loop:{} \t Score Parent:{} \t Child: {}".format(counter, parent_diff, child_diff))
+
+        if counter % self.save_pre_loop == 0:
+            parent.save_as_img(self.output_path, str(counter))
+
+        if child_diff < parent_diff:
+            parent = child
+
+        counter += 1
 
 
 if __name__ == '__main__':
-    transformater = Transform('man.gif', './output', save_pre_loop=10, mutate_rate=100)
+    transformater = Transform('chrome.png', './output', save_pre_loop=10, mutate_rate=100)
     transformater.main()
