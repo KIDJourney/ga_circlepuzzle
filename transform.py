@@ -136,7 +136,7 @@ class PixelImage:
 class Transform:
     def __init__(self, target, output_path, max_loop=10240, save_pre_loop=1000, circle_nums=100, mutate_speed=0.1,
                  mutate_rate=10):
-        self.target = Image.open(target).convert('RGBA')
+        self.target = Image.open(target).resize((128, 128)).convert('RGBA')
         self.output_path = output_path
         self.max_loop = max_loop
         self.save_pre_loop = save_pre_loop
@@ -163,31 +163,31 @@ class Transform:
         parent = PixelImage(self.target.size, self.circle_nums, self.mutate_speed, self.mutate_rate)
         counter = 0
 
-        child = parent.born_a_child()
+        while True:
+            if counter > self.max_loop:
+                break
 
-        child.mutate()
+            child = parent.born_a_child()
 
+            child.mutate()
 
+            self.parent = parent
+            self.child = child
 
-        self.parent = parent
-        self.child = child
+            parent_diff = self.compare_pixel(parent.get_pixels())
+            child_diff = self.compare_pixel(child.get_pixels())
 
-        print(child.circles[0].centre)
+            print("Loop:{} \t\t Score Parent:{} \t\t Child: {}".format(counter, parent_diff, child_diff))
 
-        parent_diff = self.compare_pixel(parent.get_pixels())
-        child_diff = self.compare_pixel(child.get_pixels())
+            if counter % self.save_pre_loop == 0:
+                parent.save_as_img(self.output_path, str(counter))
 
-        print("Loop:{} \t Score Parent:{} \t Child: {}".format(counter, parent_diff, child_diff))
+            if child_diff < parent_diff:
+                parent = child
 
-        if counter % self.save_pre_loop == 0:
-            parent.save_as_img(self.output_path, str(counter))
-
-        if child_diff < parent_diff:
-            parent = child
-
-        counter += 1
+            counter += 1
 
 
 if __name__ == '__main__':
-    transformater = Transform('chrome.png', './output', save_pre_loop=10, mutate_rate=100)
+    transformater = Transform('chrome.png', './output', max_loop=102400, save_pre_loop=1000, mutate_rate=0.1)
     transformater.main()
