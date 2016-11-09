@@ -2,7 +2,7 @@
 
 Use genetic algorithm to fit circles to image.
 
-Inspired by (GA_engine)[https://github.com/pikeszfish/GA_engine].
+Inspired by [GA_engine](https://github.com/pikeszfish/GA_engine).
 
 ## example 
 
@@ -36,4 +36,4 @@ MIT
 
 ## Thanks
 
-Special thanks to (GA_engine)[https://github.com/pikeszfish/GA_engine].
+Special thanks to [GA_engine](https://github.com/pikeszfish/GA_engine).

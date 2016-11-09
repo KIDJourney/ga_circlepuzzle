@@ -1,7 +1,7 @@
-import getopt
 import time
 import sys
 import os
+import argparse
 import copy
 
 from PIL import Image, ImageDraw
@@ -70,10 +70,10 @@ class Circle:
     def as_image(self):
         temp_image = Image.new("RGBA", self.max_range)
         draw = ImageDraw.Draw(temp_image)
-        draw.ellipse(self.as_draw(), fill=self.color.as_tuple())
+        draw.ellipse(self.as_tuple(), fill=self.color.as_tuple())
         return temp_image
 
-    def as_draw(self):
+    def as_tuple(self):
         return self.centre[0], self.centre[1], self.centre[0] + self.radius, self.centre[1] + self.radius
 
     def __str__(self):
@@ -188,6 +188,37 @@ class Transform:
             counter += 1
 
 
-if __name__ == '__main__':
-    transformater = Transform('chrome.png', './output', max_loop=102400, save_pre_loop=1000, mutate_rate=0.1)
+def main():
+    MAX_LOOP = 102400
+    SAVE_PRE_LOOP = 1000
+    MUTATE_RATE = 10
+    MUTATE_SPEED = 0.1
+    CIRCLE_NUMS = 100
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('target', help='the image to transform')
+    parser.add_argument('output', help='the folder to store result')
+    parser.add_argument('--max_loop', help='the max loop nums of transform', type=int)
+    parser.add_argument('--save_pre_loop', help='save the temp result pre loop', type=int)
+    parser.add_argument('--mutate_rate', help='the rate of mutate MUTATE_RATE, percent', type=int)
+    parser.add_argument('--mutate_speed', help='the mutate speed of every mutate', type=float)
+    parser.add_argument('--circle_nums', help='numbers of circles to fit the image', type=int)
+    args = parser.parse_args()
+
+    TARGET = args.target
+    OUTPUT = args.output
+    MAX_LOOP = args.max_loop or MAX_LOOP
+    SAVE_PRE_LOOP = args.save_pre_loop or SAVE_PRE_LOOP
+    MUTATE_RATE = args.mutate_rate or MUTATE_RATE
+    MUTATE_SPEED = args.mutate_speed or MUTATE_SPEED
+    CIRCLE_NUMS = args.circle_nums or CIRCLE_NUMS
+
+    transformater = Transform(TARGET, OUTPUT, max_loop=MAX_LOOP, save_pre_loop=SAVE_PRE_LOOP, mutate_rate=MUTATE_RATE,
+                              circle_nums=CIRCLE_NUMS, mutate_speed=MUTATE_SPEED)
+    print("""Max Loop: {} \t Save Pre Loop: {} \t Mutate Rate: {} \t Circle Nums: {} \t Mutate Speed: {}""".format(
+        MAX_LOOP, SAVE_PRE_LOOP, MUTATE_RATE, CIRCLE_NUMS, MUTATE_SPEED))
     transformater.main()
+
+
+if __name__ == '__main__':
+    main()
