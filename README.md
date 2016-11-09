@@ -17,10 +17,10 @@ Inspired by [GA_engine](https://github.com/pikeszfish/GA_engine).
 
 ## Usage
 
-usage: transform.py [-h] [--max_loop MAX_LOOP] [--save_pre_loop SAVE_PRE_LOOP]
-                    [--mutate_rate MUTATE_RATE] [--mutate_speed MUTATE_SPEED]
-                    [--circle_nums CIRCLE_NUMS]
-                    target output
+    usage: transform.py [-h] [--max_loop MAX_LOOP] [--save_pre_loop SAVE_PRE_LOOP]
+                        [--mutate_rate MUTATE_RATE] [--mutate_speed MUTATE_SPEED]
+                        [--circle_nums CIRCLE_NUMS]
+                        target output
                     
 ## Extend
  
